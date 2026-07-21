@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clemence Stupid-O-Meter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-top:#161a33;
+    --bg-bottom:#0c0e1f;
+    --panel-border:#05060f;
+    --ink:#eef1ff;
+    --ink-dim:#9aa0c7;
+    --neon:#4be7ff;
+    --neon-glow:#1fb7ff;
+    --green:#57d66c;
+    --green-light:#9be05f;
+    --yellow:#f4d94d;
+    --orange:#f2a53c;
+    --orange-dark:#ec7b2e;
+    --red:#e8483c;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html, body{
+    height:100%;
+  }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(180deg,var(--bg-top),var(--bg-bottom));
+    font-family:'VT323', monospace;
+  }
+
+  .screen{
+    width:100%;
+    min-height:100vh;
+    max-width:none;
+    background:linear-gradient(180deg,var(--bg-top),var(--bg-bottom));
+    border:none;
+    border-radius:0;
+    box-shadow:none;
+    padding:60px 32px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .content{
+    width:100%;
+    max-width:900px;
+    margin:0 auto;
+    position:relative;
+    z-index:1;
+  }
+  .screen::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      radial-gradient(circle, rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size:26px 26px;
+    opacity:.4;
+    pointer-events:none;
+  }
+
+  h1{
+    font-family:'Press Start 2P', monospace;
+    text-align:center;
+    font-size:clamp(18px, 3.4vw, 32px);
+    color:var(--neon);
+    text-shadow:
+      0 0 6px var(--neon-glow),
+      0 0 14px var(--neon-glow),
+      3px 3px 0 rgba(0,0,0,.5);
+    letter-spacing:1px;
+    margin:0 0 34px;
+    line-height:1.5;
+  }
+
+  .meter-wrap{
+    position:relative;
+    padding:0 10px;
+    margin-bottom:6px;
+  }
+
+  svg{ display:block; width:100%; height:auto; overflow:visible; }
+
+  .segment-label{
+    font-family:'Press Start 2P', monospace;
+    font-size:8.5px;
+    fill:#111225;
+    text-anchor:middle;
+  }
+
+  .end-label{
+    font-family:'Press Start 2P', monospace;
+    font-size:12px;
+  }
+
+  .end-value{
+    font-family:'Press Start 2P', monospace;
+    font-size:11px;
+  }
+
+  .cursor-group{ transition:transform .1s linear; }
+
+  .cursor-pct{
+    font-family:'Press Start 2P', monospace;
+    font-size:13px;
+    fill:var(--ink);
+    text-anchor:middle;
+  }
+
+  .comment{
+    text-align:center;
+    color:var(--ink-dim);
+    font-size:22px;
+    margin-top:6px;
+    letter-spacing:.5px;
+  }
+
+  .category-title{
+    text-align:center;
+    font-family:'Press Start 2P', monospace;
+    font-size:clamp(14px, 2.4vw, 20px);
+    color:var(--neon);
+    text-shadow:0 0 8px var(--neon-glow);
+    letter-spacing:2px;
+    margin:22px 0 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="screen">
+  <div class="content">
+  <h1>CLEMENCE<br>STUPID-O-METER</h1>
+
+  <!--
+    ============================================================
+    HOW TO SET THE CURSOR POSITION:
+    1) Change the value here -> data-value="68"
+       (a number between 0 and 100)
+    2) OR change the DEFAULT_VALUE constant in the <script> below.
+    The data-value attribute takes priority if present.
+    ============================================================
+  -->
+  <div id="stupid-o-meter" data-value="68">
+    <div class="meter-wrap">
+      <svg id="meterSvg" viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <p class="category-title" id="categoryTitle">FISH</p>
+
+    <p class="comment" id="comment">(Rock bottom. Geologists want to study you.)</p>
+  </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  // ============================================================
+  // CONFIG — the only thing you need to edit to move the cursor
+  // on each page/version of the site
+  // ============================================================
+  const DEFAULT_VALUE = 68; // 0 = Illuminati, 100 = Rock
+
+  const CATEGORIES = [
+    { label: "ILLUMINATI",     from: 0,     to: 12.5,  color: "#2fd68a" },
+    { label: "GENIUS",         from: 12.5,  to: 25,    color: "#57d66c" },
+    { label: "AVERAGE",        from: 25,    to: 37.5,  color: "#c6dd4e" },
+    { label: "DUMB",           from: 37.5,  to: 50,    color: "#f4d94d" },
+    { label: "BRAINDEAD",      from: 50,    to: 62.5,  color: "#f2b03c" },
+    { label: "FISH",           from: 62.5,  to: 75,    color: "#f2a53c" },
+    { label: "CHEESE SANDWICH",from: 75,    to: 87.5,  color: "#ec7b2e" },
+    { label: "ROCK",           from: 87.5,  to: 100,   color: "#e8483c" },
+  ];
+
+  const COMMENTS = [
+    { max: 12.5, text: "(Certified genius. Suspicious how good you are at everything.)" },
+    { max: 25,   text: "(Sharp as a tack, and a little insufferable about it.)" },
+    { max: 37.5, text: "(Perfectly, forgettably average. A true nobody.)" },
+    { max: 50,   text: "(Not your finest moment. Coffee won't save this one.)" },
+    { max: 62.5, text: "(Braindead o'clock. Please sit down and rehydrate.)" },
+    { max: 75,   text: "(Outsmarted by something with a three-second memory.)" },
+    { max: 87.5, text: "(The intellectual density of two slices of white bread.)" },
+    { max: 101,  text: "(Rock bottom. Geologists want to study you.)" },
+  ];
+
+  const root = document.getElementById('stupid-o-meter');
+  const attrValue = root ? parseFloat(root.dataset.value) : NaN;
+  const initialValue = Number.isFinite(attrValue) ? attrValue : DEFAULT_VALUE;
+
+  const svg = document.getElementById('meterSvg');
+  const NS = "http://www.w3.org/2000/svg";
+
+  // Arc geometry: a simple curved path from left to right, like a bridge
+  const W = 900, H = 260;
+  const startX = 90, endX = 810, baseY = 190, peakY = 60;
+
+  function pointOnArc(t){
+    // t in [0,1] — quadratic bezier control point at the top for the arch shape
+    const cx = W/2, cy = peakY;
+    const x = (1-t)*(1-t)*startX + 2*(1-t)*t*cx + t*t*endX;
+    const y = (1-t)*(1-t)*baseY  + 2*(1-t)*t*cy + t*t*baseY;
+    return {x, y};
+  }
+
+  function angleOnArc(t){
+    const d = 0.001;
+    const p1 = pointOnArc(Math.max(0, t-d));
+    const p2 = pointOnArc(Math.min(1, t+d));
+    return Math.atan2(p2.y-p1.y, p2.x-p1.x) * 180/Math.PI;
+  }
+
+  function buildPathD(t0, t1, steps){
+    steps = steps || 24;
+    let d = "";
+    for(let i=0;i<=steps;i++){
+      const t = t0 + (t1-t0)*(i/steps);
+      const p = pointOnArc(t);
+      d += (i===0 ? "M":"L") + p.x.toFixed(2) + " " + p.y.toFixed(2) + " ";
+    }
+    return d;
+  }
+
+  function el(tag, attrs){
+    const e = document.createElementNS(NS, tag);
+    for(const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function render(value){
+    value = Math.max(0, Math.min(100, value));
+    svg.innerHTML = "";
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+    // --- draw each colored segment as a thick pixel-block path ---
+    CATEGORIES.forEach(cat=>{
+      const t0 = cat.from/100, t1 = cat.to/100;
+      const d = buildPathD(t0, t1);
+      const path = el('path', {
+        d, fill:"none", stroke:cat.color, "stroke-width":34,
+        "stroke-linecap":"butt"
+      });
+      svg.appendChild(path);
+
+      // dark outline on top for the pixel/comic border look
+      const outline = el('path', {
+        d, fill:"none", stroke:"#0c0e1f", "stroke-width":38,
+        "stroke-linecap":"butt", opacity:"1"
+      });
+      outline.setAttribute("stroke-dasharray","0");
+      svg.insertBefore(outline, path); // outline behind fill, slightly thicker
+
+      // label at the midpoint of each segment
+      const mid = pointOnArc((t0+t1)/2);
+      const ang = angleOnArc((t0+t1)/2);
+      const label = el('text', {
+        x:mid.x, y:mid.y+4, class:"segment-label",
+        transform:`rotate(${ang} ${mid.x} ${mid.y})`
+      });
+      const words = cat.label.split(" ");
+      if(words.length>1 && cat.label.length>8){
+        label.setAttribute("y", mid.y-2);
+        words.forEach((w,i)=>{
+          const tspan = el('tspan', {x:mid.x, dy: i===0?0:10});
+          tspan.textContent = w;
+          label.appendChild(tspan);
+        });
+      } else {
+        label.textContent = cat.label;
+      }
+      svg.appendChild(label);
+    });
+
+    // --- endpoint icons: bulb (genius) and rock (rock) ---
+    const startPt = pointOnArc(0);
+    const endPt = pointOnArc(1);
+
+    // eye-in-pyramid icon (illuminati)
+    const eye = el('g', {transform:`translate(${startPt.x-46} ${startPt.y-10})`});
+    eye.innerHTML = `
+      <polygon points="18,2 34,34 2,34" fill="#2fd68a" stroke="#0c0e1f" stroke-width="3"/>
+      <circle cx="18" cy="25" r="6.5" fill="#eef1ff" stroke="#0c0e1f" stroke-width="2"/>
+      <circle cx="18" cy="25" r="2.6" fill="#0c0e1f"/>
+    `;
+    svg.appendChild(eye);
+    const genVal = el('text', {x:startPt.x, y:startPt.y+44, class:"end-value", fill:"#2fd68a", "text-anchor":"middle"});
+    genVal.textContent = "0%";
+    svg.appendChild(genVal);
+
+    // rock icon (rock)
+    const rock = el('g', {transform:`translate(${endPt.x+8} ${endPt.y-14})`});
+    rock.innerHTML = `
+      <path d="M4 30 L10 12 L24 6 L34 14 L30 30 Z" fill="#8b8f9e" stroke="#0c0e1f" stroke-width="3"/>
+      <path d="M12 26 L18 18 L24 24" stroke="#0c0e1f" stroke-width="2" fill="none"/>
+      <circle cx="14" cy="14" r="2" fill="#0c0e1f"/>
+      <circle cx="24" cy="12" r="1.6" fill="#0c0e1f"/>
+    `;
+    svg.appendChild(rock);
+    const rockVal = el('text', {x:endPt.x, y:endPt.y+44, class:"end-value", fill:"#e8483c", "text-anchor":"middle"});
+    rockVal.textContent = "100%";
+    svg.appendChild(rockVal);
+
+    // --- cursor (pointer + %) ---
+    const t = value/100;
+    const cp = pointOnArc(t);
+    const cursor = el('g', {class:"cursor-group"});
+    cursor.innerHTML = `
+      <polygon points="${cp.x},${cp.y-30} ${cp.x-9},${cp.y-46} ${cp.x+9},${cp.y-46}" fill="#eef1ff" stroke="#0c0e1f" stroke-width="3"/>
+      <rect x="${cp.x-9}" y="${cp.y-46}" width="18" height="6" fill="#eef1ff" stroke="#0c0e1f" stroke-width="2"/>
+    `;
+    svg.appendChild(cursor);
+
+    const pctText = el('text', {x:cp.x, y:cp.y-56, class:"cursor-pct"});
+    pctText.textContent = Math.round(value) + "% STUPID";
+    svg.appendChild(pctText);
+
+    // --- category title, between the bar and the comment ---
+    const currentCat = CATEGORIES.find(c => value >= c.from && value <= c.to) || CATEGORIES[CATEGORIES.length-1];
+    const titleEl = document.getElementById('categoryTitle');
+    if(titleEl) titleEl.textContent = currentCat.label;
+
+    // --- comment under the bar ---
+    const commentObj = COMMENTS.find(c => value <= c.max) || COMMENTS[COMMENTS.length-1];
+    const commentEl = document.getElementById('comment');
+    if(commentEl) commentEl.textContent = commentObj.text;
+  }
+
+  render(initialValue);
+
+})();
+</script>
+
+</body>
+</html>
